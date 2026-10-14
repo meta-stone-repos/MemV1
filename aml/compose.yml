@@ -1,0 +1,29 @@
+name: bbj-memv-aml
+services:
+  aml:
+    build: .
+    image: local/bbj-memv-api:1
+    container_name: bbj-memv-aml
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      AML_STATE_DIR: /app/data
+      AML_API_KEY: ${AML_API_KEY:-}
+      AML_REQUEST_TIMEOUT: "1800"
+      AML_MAX_ACTIVE: "16"
+      AML_MAX_INFLIGHT: "32"
+      AML_QUEUE_TIMEOUT: "1800"
+    volumes:
+      - ./:/adapter:ro
+      - ./data:/app/data
+    # HTTP liveness only; /health separately reports backend readiness (503 until configured).
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18083/openapi.json', timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
